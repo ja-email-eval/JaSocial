@@ -16,7 +16,6 @@ The trained model weights are hosted on Google Drive:
 After downloading, place the files so the directory looks like:
 
 ```
-release/
   models/
     stage1_<timestamp>/
       stage1_model.bin
