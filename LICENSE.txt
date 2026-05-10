@@ -1,18 +1,91 @@
-Creative Commons Attribution 4.0 International
+Japanese Business Email Corpus Dataset License
 
-Copyright (c) 2026 Muxuan Liu and contributors
+Copyright (c) 2026 Muxuan Liu and contributors.
 
-This dataset is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+This license applies to the Japanese Business Email Corpus dataset
+(the “Dataset”). It does not apply to the paper, source code, or other
+materials in this repository unless stated otherwise.
 
-You are free to:
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+1. Permission to Use
 
-Under the following terms:
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+The Dataset may be used only after access has been granted by the
+copyright holder or an authorized maintainer.
 
-Full license text:
-https://creativecommons.org/licenses/by/4.0/legalcode
+Authorized users may use the Dataset for research, teaching, evaluation,
+and related academic or non-commercial analysis.
 
-License summary:
-https://creativecommons.org/licenses/by/4.0/
+Authorized users may make local copies of the Dataset only as needed for
+the permitted use.
+
+Authorized users may create internal modified versions of the Dataset,
+such as reformatted files, annotations, labels, or derived analysis files,
+only for the permitted use.
+
+2. Attribution
+
+If you use the Dataset in a publication, presentation, report, software,
+model card, or other public output, you must cite the following paper:
+
+Muxuan Liu, Tatsuya Ishigaki, Yusuke Miyao, Hiroya Takamura, and Ichiro Kobayashi.
+Constructing a Japanese Business Email Corpus Based on Social Situations.
+Proceedings of the 37th Pacific Asia Conference on Language, Information
+and Computation (PACLIC 2023), pages 499--509.
+
+You should also mention the official repository when possible.
+
+3. No Redistribution
+
+You may not redistribute, publish, upload, sell, sublicense, transfer, or
+otherwise make available the Dataset to any third party.
+
+This restriction applies to the original Dataset and to any modified,
+reformatted, translated, annotated, filtered, or partial version of the
+Dataset.
+
+You may not place the Dataset, or any substantial part of it, in a public
+repository, shared drive, data archive, benchmark package, supplementary
+material, or model release.
+
+If another person wants to use the Dataset, please direct them to the
+official repository or ask them to contact the dataset maintainer.
+
+4. Publication of Results
+
+You may publish research results, aggregate statistics, evaluation scores,
+and analysis based on the Dataset.
+
+You may not publish raw dataset records or examples from the Dataset
+unless you have prior written permission from the copyright holder.
+
+You may not release models, generated outputs, or other artifacts that
+contain, reconstruct, or reveal substantial parts of the Dataset.
+
+5. Data Protection
+
+You must take reasonable steps to prevent unauthorized access to the
+Dataset.
+
+If you become aware of any unauthorized access, sharing, or publication
+of the Dataset, you must notify the dataset maintainer as soon as possible.
+
+6. Termination
+
+If you violate this license, your permission to use the Dataset ends
+automatically.
+
+After termination, you must stop using the Dataset and delete all copies
+under your control, including modified or derived versions.
+
+7. No Warranty
+
+The Dataset is provided “as is”, without any warranty.
+
+The copyright holder and contributors are not liable for any claim,
+damage, or other liability arising from the use of the Dataset.
+
+8. Permission Requests
+
+For access requests, redistribution requests, or any other questions,
+please contact:
+
+liu.muxuan@is.ocha.ac.jp
