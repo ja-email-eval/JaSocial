@@ -10,10 +10,10 @@ To request access to the dataset, please contact: **liu.muxuan@is.ocha.ac.jp**
 ## License
 Copyright (c) 2026 Muxuan Liu and contributors.
 
-The dataset is made available upon request and is governed by the terms described in the LICENSE file.
+The dataset is not an open dataset and is not released under a Creative Commons license. Access is granted only upon request.
 
-Redistribution of the dataset or any modified version of the dataset is not permitted without prior written permission from the copyright holder.
+Use of the dataset is governed by the custom dataset license described in the LICENSE file.
+
+Redistribution of the dataset is not permitted. This includes the original dataset, modified versions, reformatted versions, translated versions, annotated versions, filtered subsets, and any other partial version of the dataset.
 
 If you want to tell others about this dataset, please direct them to this official repository instead of sending them a copy of the dataset.
-
-
