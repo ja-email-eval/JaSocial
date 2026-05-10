@@ -1,3 +1,12 @@
+# JaSocial
+
+## Dataset Access
+
+The dataset is not directly redistributed through this repository.
+
+To request access to the dataset, please contact: **liu.muxuan@is.ocha.ac.jp**
+
+
 ## License
 Creative Commons Attribution 4.0 International
 
