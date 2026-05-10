@@ -8,21 +8,12 @@ To request access to the dataset, please contact: **liu.muxuan@is.ocha.ac.jp**
 
 
 ## License
-Creative Commons Attribution 4.0 International
+Copyright (c) 2026 Muxuan Liu and contributors.
 
-Copyright (c) 2026 Muxuan Liu and contributors
+The dataset is made available upon request and is governed by the terms described in the LICENSE file.
 
-This dataset is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+Redistribution of the dataset or any modified version of the dataset is not permitted without prior written permission from the copyright holder.
 
-You are free to:
-- Share — copy and redistribute the material in any medium or format
-- Adapt — remix, transform, and build upon the material for any purpose, even commercially
+If you want to tell others about this dataset, please direct them to this official repository instead of sending them a copy of the dataset.
 
-Under the following terms:
-- Attribution — You must give appropriate credit, provide a link to the license, and indicate if changes were made.
 
-Full license text:
-https://creativecommons.org/licenses/by/4.0/legalcode
-
-License summary:
-https://creativecommons.org/licenses/by/4.0/
