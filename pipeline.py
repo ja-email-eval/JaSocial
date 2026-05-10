@@ -3,7 +3,7 @@ Keigo Scoring Pipeline
 ======================
 このスクリプトは入力された日本語メールの敬語使用状況を3段階モデルで総合採点します。
 
-三阶段分类模型：
+3-stage classification models:
   Stage1: メールレベルの社会関係・役割関係認識
   Stage2: 文レベルのやり取り対象・役割・送信者行動認識
   Stage3: 文レベルの敬語スタイル分類
@@ -38,7 +38,7 @@ import datetime
 import traceback
 
 # ==========================================
-# 1. 基础配置
+# 1. Configuration
 # ==========================================
 
 class PipelineConfig:
@@ -57,8 +57,8 @@ class PipelineConfig:
     def _load_label_maps(self, maps_file):
         if not os.path.exists(maps_file):
             raise FileNotFoundError(
-                f"ラベルマッピングファイルが見つかりません: {maps_file}\n"
-                f"label_maps.json がスクリプトと同じディレクトリにあることを確認してください。"
+                f"Label map file not found: {maps_file}\n"
+                f"label_maps.json must be in the same directory as this script."
             )
         with open(maps_file, "r", encoding="utf-8") as f:
             maps = json.load(f)
@@ -68,7 +68,7 @@ class PipelineConfig:
         self.style_map = maps["style_map"]
 
 # ==========================================
-# 2. 模型定义 (3-Stage BERT Classifiers)
+# 2. Model Definitions (3-Stage BERT Classifiers)
 # ==========================================
 
 class Stage1Model(nn.Module):
@@ -125,7 +125,7 @@ class Stage3Model(nn.Module):
         return self.classifier(combined)
 
 # ==========================================
-# 3. 推理与打分
+# 3. Inference & Scoring
 # ==========================================
 
 def run_scoring_pipeline(email_text, config, output_dir="./runs", reference_labels=None):
@@ -137,7 +137,7 @@ def run_scoring_pipeline(email_text, config, output_dir="./runs", reference_labe
         if not model_dirs:
             raise FileNotFoundError(
                 f"{stage_name} のモデルが見つかりません。\n"
-                f"モデルディレクトリ '{config.model_root}' に "
+                f"Model directory '{config.model_root}' に "
                 f"'{stage_name}_<timestamp>/{stage_name}_model.bin' を配置してください。\n"
                 f"Google Drive からダウンロード → README 参照。"
             )
@@ -277,7 +277,7 @@ def run_scoring_pipeline(email_text, config, output_dir="./runs", reference_labe
     return output
 
 # ==========================================
-# 4. エントリーポイント
+# 4. Entry Point
 # ==========================================
 
 if __name__ == "__main__":
