@@ -34,15 +34,15 @@ import traceback
 #####################################
 
 def setup_logger(log_file=None):
-    # 获取当前时间戳
+    # get current timestamp
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     
-    # 设置日志目录
+    # set log directory
     log_dir = "./logs"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     
-    # 如果没有指定日志文件名，根据当前执行的脚本类型生成文件名
+    # auto-generate log filename based on execution mode
     if log_file is None:
         script_name = os.path.basename(sys.argv[0])
         if "train" in " ".join(sys.argv):
@@ -52,27 +52,27 @@ def setup_logger(log_file=None):
     else:
         log_file = os.path.join(log_dir, log_file)
     
-    # 删除所有既存のハンドラ
+    # remove all existing handlers
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     
-    # 設定ログフォーマット
+    # configure log format
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     
-    # ファイルハンドラ
+    # file handler
     file_handler = logging.FileHandler(log_file, encoding='utf-8', mode='w')
     file_handler.setFormatter(formatter)
     
-    # コンソールハンドラ
+    # console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     
-    # 設定根ログレコーダー
+    # configure root logger
     logging.root.setLevel(logging.INFO)
     logging.root.addHandler(file_handler)
     logging.root.addHandler(console_handler)
     
-    # 记录执行的脚本信息
+    # log script execution info
     script_path = os.path.abspath(sys.argv[0])
     command_line = " ".join(sys.argv)
     logging.info(f"実行スクリプト: {script_path}")
@@ -141,29 +141,29 @@ def create_model_save_dir():
 
 def build_label_maps_from_data(data_dir):
     """
-    从数据目录中自动提取所有可能的标签并构建映射
-    返回: object_of_exchange_map, role_in_conversation_map, sender_action_map, keigo_type_map
+    Auto-extract all possible labels from the data directory and build label maps.
+    Returns: object_of_exchange_map, role_in_conversation_map, sender_action_map, keigo_type_map
     """
     object_of_exchange = set()
     role_in_conversation = set()
     sender_actions = set()
     keigo_type = set()
     
-    # 新增两个集合来存储拆分后的标签
-    action_types = set()  # 行为类型
-    action_contents = set()  # 行为内容
+    # two extra sets for split action labels
+    action_types = set()  # action type
+    action_contents = set()  # action content
     
-    # 定义标签类型的正则表达式模式
+    # regex patterns for each label type
     object_pattern = r"第二層:やり取りされるもの:(.*)"
     role_pattern = r"第二層:やり取りにおける役割:(.*)"
     action_pattern = r"第二層:送信者の動き:(.*)"
     style_pattern = r"第三層:(.*)"
     
-    # 遍历所有JSON文件
+    # iterate over all JSON files
     file_count = 0
     processed_files = 0
     
-    logging.info(f"开始扫描目录: {data_dir}")
+    logging.info(f"Scanning directory: {data_dir}")
     
     for root, dirs, files in os.walk(data_dir):
         for file in files:
@@ -174,7 +174,7 @@ def build_label_maps_from_data(data_dir):
             file_path = os.path.join(root, file)
             
             try:
-                logging.info(f"处理文件: {file_path}")
+                logging.info(f"Processing file: {file_path}")
                 with open(file_path, "r", encoding="utf-8") as f:
                     data_json = json.load(f)
                 
@@ -183,92 +183,92 @@ def build_label_maps_from_data(data_dir):
                 elif isinstance(data_json, list):
                     data_list = data_json
                 else:
-                    logging.warning(f"文件 {file_path} 格式不正确，既不是字典也不是列表")
+                    logging.warning(f"File {file_path}: invalid format (not dict or list)")
                     continue
                 
                 for item_idx, item in enumerate(data_list):
                     sentences, tags_list = extract_sentences_and_tags(item)
-                    logging.debug(f"文件 {file_path} 中的项目 {item_idx} 包含 {len(sentences)} 个句子和 {len(tags_list)} 个标签列表")
+                    logging.debug(f"File {file_path} item {item_idx}: {len(sentences)} sentences, {len(tags_list)} tag lists")
                     
                     for sent_idx, (sent, tags) in enumerate(zip(sentences, tags_list)):
                         for tag in tags:
                             if not isinstance(tag, str):
                                 continue
                                 
-                            # 提取交互对象
+                            # extract interaction object
                             object_match = re.search(object_pattern, tag)
                             if object_match:
                                 label = object_match.group(1).strip()
                                 object_of_exchange.add(label)
-                                logging.debug(f"找到交互对象标签: {label}")
+                                logging.debug(f"Found interaction object label: {label}")
                                 
-                            # 提取交互角色
+                            # extract interaction role
                             role_match = re.search(role_pattern, tag)
                             if role_match:
                                 label = role_match.group(1).strip()
                                 role_in_conversation.add(label)
-                                logging.debug(f"找到交互角色标签: {label}")
+                                logging.debug(f"Found interaction role label: {label}")
                                 
-                            # 提取发送者行为
+                            # extract sender action
                             action_match = re.search(action_pattern, tag)
                             if action_match:
                                 label = action_match.group(1).strip()
                                 sender_actions.add(label)
-                                logging.debug(f"找到发送者行为标签: {label}")
+                                logging.debug(f"Found sender action label: {label}")
                                 
-                                # 拆分行为类型和内容
+                                # split action type and content
                                 parts = label.split(":")
                                 if len(parts) >= 1:
-                                    # 处理行为类型部分 (冒号前)
+                                    # action type part (before colon)
                                     type_part = parts[0]
                                     for action_type in type_part.split("+"):
                                         action_types.add(action_type.strip())
                                     
-                                    # 处理行为内容部分 (冒号后)
+                                    # action content part (after colon)
                                     if len(parts) >= 2:
                                         content_part = parts[1]
                                         for action_content in content_part.split("+"):
                                             action_contents.add(action_content.strip())
                                 
-                            # 提取风格
+                            # extract style
                             style_match = re.search(style_pattern, tag)
                             if style_match:
                                 label = style_match.group(1).strip()
                                 keigo_type.add(label)
-                                logging.debug(f"找到风格标签: {label}")
+                                logging.debug(f"Found style label: {label}")
                 
                 processed_files += 1
                 if processed_files % 10 == 0:
-                    logging.info(f"已处理 {processed_files}/{file_count} 个文件")
+                    logging.info(f"Processed {processed_files}/{file_count} files")
                     
             except json.JSONDecodeError as e:
-                logging.error(f"解析JSON文件 {file_path} 时出错: {str(e)}")
+                logging.error(f"JSON parse error in {file_path}: {str(e)}")
             except Exception as e:
-                logging.error(f"处理文件 {file_path} 时出错: {str(e)}")
+                logging.error(f"Error processing {file_path}: {str(e)}")
                 import traceback
                 logging.error(traceback.format_exc())
     
-    logging.info(f"文件处理完成。总共扫描了 {file_count} 个文件，成功处理了 {processed_files} 个文件")
+    logging.info(f"Done. Scanned {file_count} files, processed {processed_files} successfully.")
     
-    # 构建映射字典
+    # build mapping dicts
     interaction_object_map = {obj: i for i, obj in enumerate(sorted(object_of_exchange))}
     interaction_role_map = {role: i for i, role in enumerate(sorted(role_in_conversation))}
     sender_action_map = {action: i for i, action in enumerate(sorted(sender_actions))}
     style_map = {style: i for i, style in enumerate(sorted(keigo_type))}
     
-    # 构建拆分后的映射
+    # build split action maps
     action_type_map = {act_type: i for i, act_type in enumerate(sorted(action_types))}
     action_content_map = {act_content: i for i, act_content in enumerate(sorted(action_contents))}
     
-    logging.info(f"提取的标签统计:")
-    logging.info(f"交互对象标签: {len(object_of_exchange)} 个")
-    logging.info(f"交互角色标签: {len(role_in_conversation)} 个")
-    logging.info(f"发送者行为标签: {len(sender_actions)} 个")
-    logging.info(f"行为类型标签: {len(action_types)} 个")
-    logging.info(f"行为内容标签: {len(action_contents)} 个")
-    logging.info(f"风格标签: {len(keigo_type)} 个")
+    logging.info("Label extraction statistics:")
+    logging.info(f"  interaction_object labels: {len(object_of_exchange)}")
+    logging.info(f"  interaction_role labels: {len(role_in_conversation)}")
+    logging.info(f"  sender_action labels: {len(sender_actions)}")
+    logging.info(f"  action_type labels: {len(action_types)}")
+    logging.info(f"  action_content labels: {len(action_contents)}")
+    logging.info(f"  style labels: {len(keigo_type)}")
     
-    # 保存映射到JSON文件
+    # save maps to JSON file
     maps = {
         "interaction_object_map": interaction_object_map,
         "interaction_role_map": interaction_role_map,
@@ -282,20 +282,20 @@ def build_label_maps_from_data(data_dir):
     with open(maps_file, "w", encoding="utf-8") as f:
         json.dump(maps, f, ensure_ascii=False, indent=2)
 
-    logging.info(f"自动提取的标签映射已保存到 {os.path.abspath(maps_file)}")
+    logging.info(f"Label maps saved to {os.path.abspath(maps_file)}")
     
     return interaction_object_map, interaction_role_map, sender_action_map, action_type_map, action_content_map, style_map
 
 class Config:
     def __init__(self):
-        # 先检查命令行，看看是不是推理模式
+        # check if running in inference mode
         mode = None
         if "--mode" in sys.argv:
             idx = sys.argv.index("--mode")
             if idx + 1 < len(sys.argv):
                 mode = sys.argv[idx + 1]
 
-        # 如果是inference模式，就不创建新目录，直接给个空字符串或None都行
+        # no new directory needed in inference mode
         if mode == "inference":
             self.model_save_dir = ""  # 或者改成 None
         else:
@@ -315,23 +315,23 @@ class Config:
         self.role_pair_map = {"学生→友人": 0, "従業員→同僚": 1, "学生→教授": 2,
                               "従業員→上司": 3, "教員→学生": 4, "従業員→部下": 5}
         
-        # 从自动生成的映射文件加载Stage2和Stage3的标签映射
+        # load Stage2/Stage3 label maps
         self._load_auto_label_maps()
         
     def _load_auto_label_maps(self):
-        """从自动生成的映射文件加载标签映射"""
+        """Load label maps from the auto-generated mapping file."""
         maps_file = "./label_maps.json"
 
         if not os.path.exists(maps_file):
-            logging.error(f"自动标签映射文件 {maps_file} 不存在")
-            raise FileNotFoundError(f"找不到标签映射文件，请先运行 'python classifier.py --mode build_maps --data_dir ./data' 生成映射文件")
+            logging.error(f"Label map file not found: {maps_file}")
+            raise FileNotFoundError("Label map file not found. Run: python classifier.py --mode build_maps --data_dir ./data")
         
         try:
-            logging.info(f"从 {maps_file} 加载自动标签映射")
+            logging.info(f"Loading label maps from {maps_file}")
             with open(maps_file, "r", encoding="utf-8") as f:
                 maps = json.load(f)
                 
-            # 加载所有映射
+            # load all maps
             self.interaction_object_map = maps["interaction_object_map"]
             self.interaction_role_map = maps["interaction_role_map"]
             self.sender_action_map = maps["sender_action_map"]
@@ -339,19 +339,19 @@ class Config:
             self.action_content_map = maps["action_content_map"]
             self.style_map = maps["style_map"]
             
-            # 记录加载的标签数量
-            logging.info(f"已加载标签映射:")
-            logging.info(f"交互对象标签: {len(self.interaction_object_map)} 个")
-            logging.info(f"交互角色标签: {len(self.interaction_role_map)} 个")
-            logging.info(f"发送者行为标签: {len(self.sender_action_map)} 个")
-            logging.info(f"行为类型标签: {len(self.action_type_map)} 个")
-            logging.info(f"行为内容标签: {len(self.action_content_map)} 个")
-            logging.info(f"风格标签: {len(self.style_map)} 个")
+            # log loaded label counts
+            logging.info("Loaded label maps:")
+            logging.info(f"  interaction_object_map: {len(self.interaction_object_map)}")
+            logging.info(f"  interaction_role_map: {len(self.interaction_role_map)}")
+            logging.info(f"  sender_action_map: {len(self.sender_action_map)}")
+            logging.info(f"  action_type_map: {len(self.action_type_map)}")
+            logging.info(f"  action_content_map: {len(self.action_content_map)}")
+            logging.info(f"  style_map: {len(self.style_map)}")
             
         except Exception as e:
-            logging.error(f"加载自动标签映射时出错: {str(e)}")
+            logging.error(f"Error loading label maps: {str(e)}")
             logging.error(traceback.format_exc())
-            raise RuntimeError("无法加载自动标签映射文件，请先运行 build_maps 模式生成映射文件")
+            raise RuntimeError("Failed to load label maps. Run build_maps mode first.")
 
 #####################################
 # 2. データ処理関数                   #
@@ -415,16 +415,16 @@ def parse_second_layer_tags(tags, interaction_object_map, interaction_role_map, 
     """
     第二層ラベル（リスト形式）を多熱ベクトルに解析し、辞書を返します：
       { "interaction_object": [...], "interaction_role": [...], "sender_action": [...] }
-    自动识别标签类型并更新相应的向量。
+    Auto-detect label type and update the corresponding vector.
     """
-    # 初始化结果向量
+    # initialize result vectors
     vec = {
         "interaction_object": [0] * len(interaction_object_map),
         "interaction_role": [0] * len(interaction_role_map),
         "sender_action": [0] * len(sender_action_map)
     }
     
-    # 定义标签类型的正则表达式模式
+    # regex patterns for each label type
     object_pattern = r"第二層:やり取りされるもの:(.*)"
     role_pattern = r"第二層:やり取りにおける役割:(.*)"
     action_pattern = r"第二層:送信者の動き:(.*)"
@@ -433,7 +433,7 @@ def parse_second_layer_tags(tags, interaction_object_map, interaction_role_map, 
         if not isinstance(tag, str):
             continue
             
-        # 匹配交互对象
+        # match interaction object
         object_match = re.search(object_pattern, tag)
         if object_match:
             label_str = object_match.group(1).strip()
@@ -441,10 +441,9 @@ def parse_second_layer_tags(tags, interaction_object_map, interaction_role_map, 
                 idx = interaction_object_map[label_str]
                 vec["interaction_object"][idx] = 1
             else:
-                # 如果标签不在映射中，记录日志
-                logging.warning(f"未知的交互对象标签: {label_str}")
+                logging.warning(f"Unknown interaction object label: {label_str}")
                 
-        # 匹配交互角色
+        # match interaction role
         role_match = re.search(role_pattern, tag)
         if role_match:
             label_str = role_match.group(1).strip()
@@ -452,9 +451,9 @@ def parse_second_layer_tags(tags, interaction_object_map, interaction_role_map, 
                 idx = interaction_role_map[label_str]
                 vec["interaction_role"][idx] = 1
             else:
-                logging.warning(f"未知的交互角色标签: {label_str}")
+                logging.warning(f"Unknown interaction role label: {label_str}")
                 
-        # 匹配发送者行为
+        # match sender action
         action_match = re.search(action_pattern, tag)
         if action_match:
             label_str = action_match.group(1).strip()
@@ -462,7 +461,7 @@ def parse_second_layer_tags(tags, interaction_object_map, interaction_role_map, 
                 idx = sender_action_map[label_str]
                 vec["sender_action"][idx] = 1
             else:
-                logging.warning(f"未知的发送者行为标签: {label_str}")
+                logging.warning(f"Unknown sender action label: {label_str}")
     
     return vec
 
@@ -615,7 +614,7 @@ def load_data_for_stage2(config):
                 logging.info(f"ファイル {file_path} の読み込みに成功")
             except Exception as e:
                 logging.error(f"ファイル {file_path} の読み込み中にエラーが発生: {e}")
-    logging.info(f"Stage2加载样本数量: {len(samples)}")
+    logging.info(f"Stage2 loaded {len(samples)} samples")
     return samples
 
 def load_data_for_stage3(config):
@@ -654,7 +653,7 @@ def load_data_for_stage3(config):
                 logging.info(f"ファイル {file_path} の読み込みに成功")
             except Exception as e:
                 logging.error(f"ファイル {file_path} の読み込み中にエラーが発生: {e}")
-    logging.info(f"Stage3加载样本数量: {len(samples)}")
+    logging.info(f"Stage3 loaded {len(samples)} samples")
     return samples
 
 #####################################
@@ -858,7 +857,7 @@ class Stage3Model(nn.Module):
 #####################################
 
 def train_stage1(config):
-    # 不再指定具体的日志文件名，让setup_logger自动生成
+    # let setup_logger auto-generate the log filename
     setup_logger()
     logging.info("\n=== Stage1モデル（メールレベル分類）の訓練開始 ===")
     logging.info(f"デバイス: {config.device}")
@@ -918,7 +917,7 @@ def train_stage1(config):
             
             total_loss += loss.item()
             
-            # 訓練精度計算
+            # 訓練accuracy calculation
             pred_keigo = torch.argmax(keigo_logits, dim=1)
             pred_role = torch.argmax(role_logits, dim=1)
             correct_keigo += (pred_keigo == social_standing_resultss).sum().item()
@@ -1026,7 +1025,7 @@ def train_stage1(config):
 
 def compute_multilabel_accuracy(preds, labels, threshold=0.5):
     """
-    多ラベル分類の逐要素精度を計算します
+    Calculate element-wise accuracy for multi-label classification.
     """
     preds_bin = (preds >= threshold).float()
     correct = (preds_bin == labels).float().sum().item()
@@ -1035,19 +1034,19 @@ def compute_multilabel_accuracy(preds, labels, threshold=0.5):
 
 def compute_multilabel_accuracy_detailed(preds, labels, label_map, threshold=0.5):
     """
-    计算多标签分类的详细精度，返回每个标签的精度
+    Calculate per-label accuracy for multi-label classification.
     """
     preds_bin = (preds >= threshold).float()
     per_label_correct = {}
     per_label_total = {}
     per_label_acc = {}
     
-    # 初始化计数器
+    # initialize counters
     for label in label_map:
         per_label_correct[label] = 0
         per_label_total[label] = 0
     
-    # 计算每个标签的正确数和总数
+    # count correct predictions per label
     for i, label_name in enumerate(label_map):
         idx = label_map[label_name]
         correct = (preds_bin[:, idx] == labels[:, idx]).float().sum().item()
@@ -1056,7 +1055,7 @@ def compute_multilabel_accuracy_detailed(preds, labels, label_map, threshold=0.5
         per_label_total[label_name] = total
         per_label_acc[label_name] = correct / total * 100 if total > 0 else 0
     
-    # 计算总体精度
+    # compute overall accuracy
     correct = (preds_bin == labels).float().sum().item()
     total = labels.numel()
     overall_acc = correct / total * 100 if total > 0 else 0
@@ -1065,41 +1064,41 @@ def compute_multilabel_accuracy_detailed(preds, labels, label_map, threshold=0.5
 
 def train_stage2(config):
     setup_logger()
-    # 首先打印所有标签映射信息
-    logging.info("\n===== 标签映射详细信息 =====")
+    # print all label map info first
+    logging.info("\n===== Label map details =====")
     
-    # 打印交互对象映射
-    logging.info("\n交互对象映射 (interaction_object_map):")
+    # print interaction object map
+    logging.info("\nInteraction object map (interaction_object_map):")
     for label, idx in sorted(config.interaction_object_map.items(), key=lambda x: x[1]):
         logging.info(f"  {idx}: {label}")
     
-    # 打印交互角色映射
-    logging.info("\n交互角色映射 (interaction_role_map):")
+    # print interaction role map
+    logging.info("\nInteraction role map (interaction_role_map):")
     for label, idx in sorted(config.interaction_role_map.items(), key=lambda x: x[1]):
         logging.info(f"  {idx}: {label}")
     
-    # 打印发送者行为映射
-    logging.info("\n发送者行为映射 (sender_action_map):")
+    # print sender action map
+    logging.info("\nSender action map (sender_action_map):")
     for label, idx in sorted(config.sender_action_map.items(), key=lambda x: x[1]):
         logging.info(f"  {idx}: {label}")
     
-    # 如果存在行为类型和内容映射，也打印它们
+    # also print action type/content maps if present
     if hasattr(config, 'action_type_map'):
-        logging.info("\n行为类型映射 (action_type_map):")
+        logging.info("\nAction type map (action_type_map):")
         for label, idx in sorted(config.action_type_map.items(), key=lambda x: x[1]):
             logging.info(f"  {idx}: {label}")
     
     if hasattr(config, 'action_content_map'):
-        logging.info("\n行为内容映射 (action_content_map):")
+        logging.info("\nAction content map (action_content_map):")
         for label, idx in sorted(config.action_content_map.items(), key=lambda x: x[1]):
             logging.info(f"  {idx}: {label}")
     
-    logging.info("\n===== 标签映射打印完成 =====")
+    logging.info("\n===== Label map print complete =====")
     
     logging.info("\n=== Stage2モデル（文節級多ラベル予測）の訓練開始 ===")
     
-    # 确保这里不要再调用setup_logger()，因为前面已经调用过了
-    # 原有训练代码从这里开始...
+    # setup_logger already called above, do not call again
+    # training code starts here
     
     tokenizer = BertJapaneseTokenizer.from_pretrained(config.pretrained_model)
     
@@ -1166,7 +1165,7 @@ def train_stage2(config):
             optimizer.step()
             total_loss += loss.item()
             
-            # 訓練時の精度計算
+            # 訓練時のaccuracy calculation
             inter_obj_acc = compute_multilabel_accuracy(torch.sigmoid(inter_obj_logits), batch["interaction_object"].to(config.device))
             inter_role_acc = compute_multilabel_accuracy(torch.sigmoid(inter_role_logits), batch["interaction_role"].to(config.device))
             sender_act_acc = compute_multilabel_accuracy(torch.sigmoid(sender_act_logits), batch["sender_action"].to(config.device))
@@ -1197,7 +1196,7 @@ def train_stage2(config):
         val_batches = 0
         
         with torch.no_grad():
-            # 收集所有的预测和标签
+            # collect all predictions and labels
             all_inter_obj_preds = []
             all_inter_role_preds = []
             all_sender_act_preds = []
@@ -1227,7 +1226,7 @@ def train_stage2(config):
                        criterion(sender_act_logits, batch["sender_action"].to(config.device))
                 val_loss += loss.item()
                 
-                # 精度計算
+                # accuracy calculation
                 inter_obj_acc = compute_multilabel_accuracy(torch.sigmoid(inter_obj_logits), batch["interaction_object"].to(config.device))
                 inter_role_acc = compute_multilabel_accuracy(torch.sigmoid(inter_role_logits), batch["interaction_role"].to(config.device))
                 sender_act_acc = compute_multilabel_accuracy(torch.sigmoid(sender_act_logits), batch["sender_action"].to(config.device))
@@ -1244,7 +1243,7 @@ def train_stage2(config):
                 all_inter_role_labels.append(batch["interaction_role"].cpu())
                 all_sender_act_labels.append(batch["sender_action"].cpu())
             
-            # 合并所有批次的预测和标签
+            # merge all batch predictions and labels
             all_inter_obj_preds = torch.cat(all_inter_obj_preds, dim=0)
             all_inter_role_preds = torch.cat(all_inter_role_preds, dim=0)
             all_sender_act_preds = torch.cat(all_sender_act_preds, dim=0)
@@ -1252,7 +1251,7 @@ def train_stage2(config):
             all_inter_role_labels = torch.cat(all_inter_role_labels, dim=0)
             all_sender_act_labels = torch.cat(all_sender_act_labels, dim=0)
             
-            # 计算详细的精度
+            # compute per-label accuracy
             obj_acc, obj_per_label_acc = compute_multilabel_accuracy_detailed(
                 all_inter_obj_preds, all_inter_obj_labels, config.interaction_object_map)
             role_acc, role_per_label_acc = compute_multilabel_accuracy_detailed(
@@ -1260,59 +1259,59 @@ def train_stage2(config):
             act_acc, act_per_label_acc = compute_multilabel_accuracy_detailed(
                 all_sender_act_preds, all_sender_act_labels, config.sender_action_map)
             
-            # 输出详细的精度报告
-            logging.info(f"\n===== 详细标签精度报告 =====")
+            # detailed accuracy report
+            logging.info("\n===== Detailed label accuracy report =====")
             
-            logging.info("\n交互对象标签精度:")
+            logging.info("\nInteraction object label accuracy:")
             for label, acc in sorted(obj_per_label_acc.items(), key=lambda x: x[1], reverse=True):
                 logging.info(f"  {label}: {acc:.2f}%")
             
-            logging.info("\n交互角色标签精度:")
+            logging.info("\nInteraction role label accuracy:")
             for label, acc in sorted(role_per_label_acc.items(), key=lambda x: x[1], reverse=True):
                 logging.info(f"  {label}: {acc:.2f}%")
             
-            logging.info("\n发送者行为标签精度:")
-            # 仅显示前20个和后5个，以避免过多输出
+            logging.info("\nSender action label accuracy:")
+            # show top-20 and bottom-5 to keep output concise
             sorted_act_accs = sorted(act_per_label_acc.items(), key=lambda x: x[1], reverse=True)
-            logging.info(f"  前20个最高精度的标签:")
+            logging.info("  Top 20 labels by accuracy:")
             for label, acc in sorted_act_accs[:20]:
                 logging.info(f"  {label}: {acc:.2f}%")
             
             if len(sorted_act_accs) > 20:
-                logging.info(f"\n  后5个最低精度的标签:")
+                logging.info("\n  Bottom 5 labels by accuracy:")
                 for label, acc in sorted_act_accs[-5:]:
                     logging.info(f"  {label}: {acc:.2f}%")
             
-            # 随机选择几个样本并显示它们的预测和实际标签
-            logging.info("\n===== 样本预测示例 =====")
+            # show predictions for a few random samples
+            logging.info("\n===== Sample prediction examples =====")
             try:
                 sample_indices = random.sample(range(len(val_dataset)), min(5, len(val_dataset)))
                 
                 for idx in sample_indices:
                     try:
                         sample = val_dataset[idx]
-                        logging.info(f"\n样本 #{idx}:")
-                        logging.info(f"样本键: {list(sample.keys())}")
+                        logging.info(f"\nSample #{idx}:")
+                        logging.info(f"Sample keys: {list(sample.keys())}")
                         
-                        # 解码邮件内容
+                        # decode email content
                         mail_ids = sample["mail_input_ids"].tolist()
                         mail_ids_clean = [tid for tid in mail_ids if tid not in [0, tokenizer.cls_token_id, tokenizer.sep_token_id]]
                         if mail_ids_clean:
                             mail_text = tokenizer.decode(mail_ids_clean)
-                            logging.info(f"邮件内容: {mail_text[:100]}..." if len(mail_text) > 100 else mail_text)
+                            logging.info(f"Email content: {mail_text[:100]}..." if len(mail_text) > 100 else mail_text)
                         else:
-                            logging.info("无法解码邮件内容")
+                            logging.info("Unable to decode email content")
                         
-                        # 解码句子内容
+                        # decode sentence content
                         sent_ids = sample["sent_input_ids"].tolist()
                         sent_ids_clean = [tid for tid in sent_ids if tid not in [0, tokenizer.cls_token_id, tokenizer.sep_token_id]]
                         if sent_ids_clean:
                             sent_text = tokenizer.decode(sent_ids_clean)
-                            logging.info(f"句子内容: {sent_text}")
+                            logging.info(f"Sentence: {sent_text}")
                         else:
-                            logging.info("无法解码句子内容")
+                            logging.info("Unable to decode sentence content")
                         
-                        # 使用已有的tokenized输入，直接进行模型预测
+                        # run model prediction on tokenized input
                         mail_input_ids = sample["mail_input_ids"].unsqueeze(0).to(config.device)
                         mail_attention_mask = sample["mail_attention_mask"].unsqueeze(0).to(config.device)
                         sent_input_ids = sample["sent_input_ids"].unsqueeze(0).to(config.device)
@@ -1329,53 +1328,53 @@ def train_stage2(config):
                                 stage1_social_standing_results, stage1_role_label
                             )
                         
-                        # 获取预测概率
+                        # get prediction probabilities
                         obj_probs = torch.sigmoid(inter_obj_logits)[0].cpu().numpy()
                         role_probs = torch.sigmoid(inter_role_logits)[0].cpu().numpy()
                         act_probs = torch.sigmoid(sender_act_logits)[0].cpu().numpy()
                         
-                        # 显示真实标签
-                        logging.info("真实标签:")
+                        # show ground truth labels
+                        logging.info("Ground truth:")
                         
-                        logging.info("  交互对象:")
+                        logging.info("  Interaction object:")
                         true_obj_indices = np.where(sample["interaction_object"].numpy() == 1)[0]
                         for i in true_obj_indices:
                             label = [k for k, v in config.interaction_object_map.items() if v == i][0]
                             logging.info(f"    - {label}")
                         
-                        logging.info("  交互角色:")
+                        logging.info("  Interaction role:")
                         true_role_indices = np.where(sample["interaction_role"].numpy() == 1)[0]
                         for i in true_role_indices:
                             label = [k for k, v in config.interaction_role_map.items() if v == i][0]
                             logging.info(f"    - {label}")
                         
-                        logging.info("  发送者行为:")
+                        logging.info("  Sender action:")
                         true_act_indices = np.where(sample["sender_action"].numpy() == 1)[0]
                         for i in true_act_indices:
                             label = [k for k, v in config.sender_action_map.items() if v == i][0]
                             logging.info(f"    - {label}")
                         
-                        # 显示预测结果
-                        logging.info("\n预测结果:")
+                        # show predictions
+                        logging.info("\nPredictions:")
                         
-                        # 显示交互对象预测
-                        logging.info("  交互对象 (前3):")
+                        # show interaction object predictions
+                        logging.info("  Interaction object (top 3):")
                         top_obj_indices = np.argsort(obj_probs)[::-1][:3]
                         for i in top_obj_indices:
                             label = [k for k, v in config.interaction_object_map.items() if v == i][0]
                             is_true = i in true_obj_indices
                             logging.info(f"    - {label}: {obj_probs[i]:.4f} {'✓' if is_true else '✗'}")
                         
-                        # 显示交互角色预测
-                        logging.info("  交互角色 (前3):")
+                        # show interaction role predictions
+                        logging.info("  Interaction role (top 3):")
                         top_role_indices = np.argsort(role_probs)[::-1][:3]
                         for i in top_role_indices:
                             label = [k for k, v in config.interaction_role_map.items() if v == i][0]
                             is_true = i in true_role_indices
                             logging.info(f"    - {label}: {role_probs[i]:.4f} {'✓' if is_true else '✗'}")
                         
-                        # 显示发送者行为预测
-                        logging.info("  发送者行为 (前5):")
+                        # show sender action predictions
+                        logging.info("  Sender action (top 5):")
                         top_act_indices = np.argsort(act_probs)[::-1][:5]
                         for i in top_act_indices:
                             label = [k for k, v in config.sender_action_map.items() if v == i][0]
@@ -1383,13 +1382,13 @@ def train_stage2(config):
                             logging.info(f"    - {label}: {act_probs[i]:.4f} {'✓' if is_true else '✗'}")
                     
                     except Exception as e:
-                        logging.error(f"处理样本 #{idx} 时出错: {str(e)}")
+                        logging.error(f"Error processing sample #{idx}: {str(e)}")
                         logging.error(traceback.format_exc())
             except Exception as e:
-                logging.error(f"样本预测部分出错: {str(e)}")
+                logging.error(f"Sample prediction error: {str(e)}")
                 logging.error(traceback.format_exc())
             
-            logging.info("===== 详细报告结束 =====")
+            logging.info("===== Detail report end =====")
         
         avg_val_loss = val_loss / len(val_loader)
         avg_val_inter_obj_acc = val_inter_obj_acc / val_batches * 100
@@ -1409,13 +1408,13 @@ def train_stage2(config):
             torch.save(model.state_dict(), os.path.join(config.model_save_dir, "stage2_model.bin"))
             logging.info(f"モデルを保存しました！新しい最高検証精度: {best_val_acc:.2f}%")
         
-        logging.info("\n=== Stage2训练完成 ===")
+        logging.info("\n=== Stage2 training complete ===")
         logging.info(f"最終最高検証精度: {best_val_acc:.2f}%")
         
-        # 直接在验证完成后添加详细报告，不要再嵌套一个epoch循环
-        logging.info("\n===== 标签详细精度报告 =====")
+        # detailed per-label report after validation
+        logging.info("\n===== Per-label accuracy report =====")
         
-        # 收集所有验证数据的预测和标签
+        # collect predictions and labels for all validation data
         model.eval()
         all_obj_preds = []
         all_role_preds = []
@@ -1431,12 +1430,12 @@ def train_stage2(config):
                 sent_input_ids = batch["sent_input_ids"].to(config.device)
                 sent_attention_mask = batch["sent_attention_mask"].to(config.device)
                 
-                # Stage1预测
+                # Stage1 prediction
                 keigo_logits, role_logits = stage1_model(mail_input_ids, mail_attention_mask)
                 stage1_social_standing_results = torch.softmax(keigo_logits, dim=1)
                 stage1_role_label = torch.softmax(role_logits, dim=1)
                 
-                # Stage2预测
+                # Stage2 prediction
                 inter_obj_logits, inter_role_logits, sender_act_logits = model(
                     mail_input_ids, mail_attention_mask,
                     sent_input_ids, sent_attention_mask,
@@ -1454,7 +1453,7 @@ def train_stage2(config):
                 all_role_labels.append(batch["interaction_role"].cpu())
                 all_act_labels.append(batch["sender_action"].cpu())
             
-            # 合并所有批次的预测和标签
+            # merge all batch predictions and labels
             all_obj_preds = torch.cat(all_obj_preds, dim=0)
             all_role_preds = torch.cat(all_role_preds, dim=0)
             all_act_preds = torch.cat(all_act_preds, dim=0)
@@ -1462,9 +1461,9 @@ def train_stage2(config):
             all_role_labels = torch.cat(all_role_labels, dim=0)
             all_act_labels = torch.cat(all_act_labels, dim=0)
         
-        # 计算每个小标签的精度
-        # 交互对象标签精度
-        logging.info("\n交互对象标签精度详情:")
+        # compute accuracy per label
+        # interaction object label accuracy
+        logging.info("\nInteraction object label accuracy details:")
         for label, idx in config.interaction_object_map.items():
             true_pos = ((all_obj_preds[:, idx] >= 0.5) & (all_obj_labels[:, idx] == 1)).sum().item()
             true_neg = ((all_obj_preds[:, idx] < 0.5) & (all_obj_labels[:, idx] == 0)).sum().item()
@@ -1476,10 +1475,10 @@ def train_stage2(config):
             f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
             support = (all_obj_labels[:, idx] == 1).sum().item()
             
-            logging.info(f"  {label}: 精度={precision*100:.2f}%, 召回率={recall*100:.2f}%, F1={f1*100:.2f}%, 支持数={support}")
+            logging.info(f"  {label}: precision={precision*100:.2f}%, recall={recall*100:.2f}%, F1={f1*100:.2f}%, support={support}")
         
-        # 交互角色标签精度
-        logging.info("\n交互角色标签精度详情:")
+        # interaction role label accuracy
+        logging.info("\nInteraction role label accuracy details:")
         for label, idx in config.interaction_role_map.items():
             true_pos = ((all_role_preds[:, idx] >= 0.5) & (all_role_labels[:, idx] == 1)).sum().item()
             true_neg = ((all_role_preds[:, idx] < 0.5) & (all_role_labels[:, idx] == 0)).sum().item()
@@ -1491,10 +1490,10 @@ def train_stage2(config):
             f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
             support = (all_role_labels[:, idx] == 1).sum().item()
             
-            logging.info(f"  {label}: 精度={precision*100:.2f}%, 召回率={recall*100:.2f}%, F1={f1*100:.2f}%, 支持数={support}")
+            logging.info(f"  {label}: precision={precision*100:.2f}%, recall={recall*100:.2f}%, F1={f1*100:.2f}%, support={support}")
         
-        # 发送者行为标签精度（可能很多，只显示前20个支持数最多的）
-        logging.info("\n发送者行为标签精度详情 (按支持数排序前20):")
+        # sender action label accuracy (top 20 by support count)
+        logging.info("\nSender action label accuracy details (top 20 by support):")
         act_metrics = []
         for label, idx in config.sender_action_map.items():
             true_pos = ((all_act_preds[:, idx] >= 0.5) & (all_act_labels[:, idx] == 1)).sum().item()
@@ -1512,38 +1511,38 @@ def train_stage2(config):
         # 按支持数排序
         act_metrics.sort(key=lambda x: x[4], reverse=True)
         for label, precision, recall, f1, support in act_metrics[:20]:
-            logging.info(f"  {label}: 精度={precision*100:.2f}%, 召回率={recall*100:.2f}%, F1={f1*100:.2f}%, 支持数={support}")
+            logging.info(f"  {label}: precision={precision*100:.2f}%, recall={recall*100:.2f}%, F1={f1*100:.2f}%, support={support}")
         
-        # 显示几个样本的具体预测结果
-        logging.info("\n===== 样本预测示例 =====")
+        # show a few sample predictions
+        logging.info("\n===== Sample prediction examples =====")
         try:
             sample_indices = random.sample(range(len(val_dataset)), min(5, len(val_dataset)))
             
             for idx in sample_indices:
                 try:
                     sample = val_dataset[idx]
-                    logging.info(f"\n样本 #{idx}:")
-                    logging.info(f"样本键: {list(sample.keys())}")
+                    logging.info(f"\nSample #{idx}:")
+                    logging.info(f"Sample keys: {list(sample.keys())}")
                     
-                    # 解码邮件内容
+                    # decode email content
                     mail_ids = sample["mail_input_ids"].tolist()
                     mail_ids_clean = [tid for tid in mail_ids if tid not in [0, tokenizer.cls_token_id, tokenizer.sep_token_id]]
                     if mail_ids_clean:
                         mail_text = tokenizer.decode(mail_ids_clean)
-                        logging.info(f"邮件内容: {mail_text[:100]}..." if len(mail_text) > 100 else mail_text)
+                        logging.info(f"Email content: {mail_text[:100]}..." if len(mail_text) > 100 else mail_text)
                     else:
-                        logging.info("无法解码邮件内容")
+                        logging.info("Unable to decode email content")
                     
-                    # 解码句子内容
+                    # decode sentence content
                     sent_ids = sample["sent_input_ids"].tolist()
                     sent_ids_clean = [tid for tid in sent_ids if tid not in [0, tokenizer.cls_token_id, tokenizer.sep_token_id]]
                     if sent_ids_clean:
                         sent_text = tokenizer.decode(sent_ids_clean)
-                        logging.info(f"句子内容: {sent_text}")
+                        logging.info(f"Sentence: {sent_text}")
                     else:
-                        logging.info("无法解码句子内容")
+                        logging.info("Unable to decode sentence content")
                     
-                    # 使用已有的tokenized输入，直接进行模型预测
+                    # run model prediction on tokenized input
                     mail_input_ids = sample["mail_input_ids"].unsqueeze(0).to(config.device)
                     mail_attention_mask = sample["mail_attention_mask"].unsqueeze(0).to(config.device)
                     sent_input_ids = sample["sent_input_ids"].unsqueeze(0).to(config.device)
@@ -1564,45 +1563,45 @@ def train_stage2(config):
                         role_probs = torch.sigmoid(inter_role_logits)[0].cpu().numpy()
                         act_probs = torch.sigmoid(sender_act_logits)[0].cpu().numpy()
                     
-                    # 显示真实标签
-                    logging.info("真实标签:")
+                    # show ground truth labels
+                    logging.info("Ground truth:")
                     
-                    logging.info("  交互对象:")
+                    logging.info("  Interaction object:")
                     true_obj_indices = np.where(sample["interaction_object"].numpy() == 1)[0]
                     for i in true_obj_indices:
                         label = [k for k, v in config.interaction_object_map.items() if v == i][0]
                         logging.info(f"    - {label}")
                     
-                    logging.info("  交互角色:")
+                    logging.info("  Interaction role:")
                     true_role_indices = np.where(sample["interaction_role"].numpy() == 1)[0]
                     for i in true_role_indices:
                         label = [k for k, v in config.interaction_role_map.items() if v == i][0]
                         logging.info(f"    - {label}")
                     
-                    logging.info("  发送者行为:")
+                    logging.info("  Sender action:")
                     true_act_indices = np.where(sample["sender_action"].numpy() == 1)[0]
                     for i in true_act_indices:
                         label = [k for k, v in config.sender_action_map.items() if v == i][0]
                         logging.info(f"    - {label}")
                     
-                    # 显示预测结果
-                    logging.info("\n预测结果:")
+                    # show predictions
+                    logging.info("\nPredictions:")
                     
-                    logging.info("  交互对象 (前3):")
+                    logging.info("  Interaction object (top 3):")
                     top_obj_indices = np.argsort(obj_probs)[::-1][:3]
                     for i in top_obj_indices:
                         label = [k for k, v in config.interaction_object_map.items() if v == i][0]
                         is_true = i in true_obj_indices
                         logging.info(f"    - {label}: {obj_probs[i]:.4f} {'✓' if is_true else '✗'}")
                     
-                    logging.info("  交互角色 (前3):")
+                    logging.info("  Interaction role (top 3):")
                     top_role_indices = np.argsort(role_probs)[::-1][:3]
                     for i in top_role_indices:
                         label = [k for k, v in config.interaction_role_map.items() if v == i][0]
                         is_true = i in true_role_indices
                         logging.info(f"    - {label}: {role_probs[i]:.4f} {'✓' if is_true else '✗'}")
                     
-                    logging.info("  发送者行为 (前5):")
+                    logging.info("  Sender action (top 5):")
                     top_act_indices = np.argsort(act_probs)[::-1][:5]
                     for i in top_act_indices:
                         label = [k for k, v in config.sender_action_map.items() if v == i][0]
@@ -1610,13 +1609,13 @@ def train_stage2(config):
                         logging.info(f"    - {label}: {act_probs[i]:.4f} {'✓' if is_true else '✗'}")
                 
                 except Exception as e:
-                    logging.error(f"处理样本 #{idx} 时出错: {str(e)}")
+                    logging.error(f"Error processing sample #{idx}: {str(e)}")
                     logging.error(traceback.format_exc())
         except Exception as e:
-            logging.error(f"样本预测部分出错: {str(e)}")
+            logging.error(f"Sample prediction error: {str(e)}")
             logging.error(traceback.format_exc())
         
-        logging.info("\n===== 详细报告结束 =====")
+        logging.info("\n===== Detail report end =====")
 
     # 全エポック終了後、テストデータでの評価
     logging.info("\n=== 全エポック終了後のテストデータ評価 ===")
@@ -1629,7 +1628,7 @@ def train_stage2(config):
     test_batches = 0
     
     with torch.no_grad():
-        # 收集所有的测试集预测和标签
+        # collect test set predictions and labels
         all_inter_obj_preds = []
         all_inter_role_preds = []
         all_sender_act_preds = []
@@ -1659,7 +1658,7 @@ def train_stage2(config):
                    criterion(sender_act_logits, batch["sender_action"].to(config.device))
             test_loss += loss.item()
             
-            # 精度計算
+            # accuracy calculation
             inter_obj_acc = compute_multilabel_accuracy(torch.sigmoid(inter_obj_logits), batch["interaction_object"].to(config.device))
             inter_role_acc = compute_multilabel_accuracy(torch.sigmoid(inter_role_logits), batch["interaction_role"].to(config.device))
             sender_act_acc = compute_multilabel_accuracy(torch.sigmoid(sender_act_logits), batch["sender_action"].to(config.device))
@@ -1676,7 +1675,7 @@ def train_stage2(config):
             all_inter_role_labels.append(batch["interaction_role"].cpu())
             all_sender_act_labels.append(batch["sender_action"].cpu())
         
-        # 合并所有批次的预测和标签
+        # merge all batch predictions and labels
         all_inter_obj_preds = torch.cat(all_inter_obj_preds, dim=0)
         all_inter_role_preds = torch.cat(all_inter_role_preds, dim=0)
         all_sender_act_preds = torch.cat(all_sender_act_preds, dim=0)
@@ -1684,7 +1683,7 @@ def train_stage2(config):
         all_inter_role_labels = torch.cat(all_inter_role_labels, dim=0)
         all_sender_act_labels = torch.cat(all_sender_act_labels, dim=0)
         
-        # 计算详细的精度
+        # compute per-label accuracy
         obj_acc, obj_per_label_acc = compute_multilabel_accuracy_detailed(
             all_inter_obj_preds, all_inter_obj_labels, config.interaction_object_map)
         role_acc, role_per_label_acc = compute_multilabel_accuracy_detailed(
@@ -1705,44 +1704,44 @@ def train_stage2(config):
     logging.info(f"  送信者の動き精度: {avg_test_sender_act_acc:.2f}%")
     logging.info(f"  平均精度: {avg_test_acc:.2f}%")
     
-    # 输出详细的精度报告
-    logging.info(f"\n===== テストデータの詳細標签精度報告 =====")
+    # detailed accuracy report
+    logging.info(f"\n===== Test set per-label accuracy report =====")
     
-    logging.info("\n交互对象标签精度:")
+    logging.info("\nInteraction object label accuracy:")
     for label, acc in sorted(obj_per_label_acc.items(), key=lambda x: x[1], reverse=True):
         logging.info(f"  {label}: {acc:.2f}%")
     
-    logging.info("\n交互角色标签精度:")
+    logging.info("\nInteraction role label accuracy:")
     for label, acc in sorted(role_per_label_acc.items(), key=lambda x: x[1], reverse=True):
         logging.info(f"  {label}: {acc:.2f}%")
     
-    logging.info("\n发送者行为标签精度:")
-    # 仅显示前20个和后5个，以避免过多输出
+    logging.info("\nSender action label accuracy:")
+    # show top-20 and bottom-5 to keep output concise
     sorted_act_accs = sorted(act_per_label_acc.items(), key=lambda x: x[1], reverse=True)
-    logging.info(f"  前20个最高精度的标签:")
+    logging.info("  Top 20 labels by accuracy:")
     for label, acc in sorted_act_accs[:20]:
         logging.info(f"  {label}: {acc:.2f}%")
     
     if len(sorted_act_accs) > 20:
-        logging.info(f"\n  后5个最低精度的标签:")
+        logging.info("\n  Bottom 5 labels by accuracy:")
         for label, acc in sorted_act_accs[-5:]:
             logging.info(f"  {label}: {acc:.2f}%")
     
-    logging.info("\n=== Stage2训练完成 ===")
+    logging.info("\n=== Stage2 training complete ===")
     logging.info(f"最終最高検証精度: {best_val_acc:.2f}%")
     logging.info(f"テスト総合精度: {avg_test_acc:.2f}%")
 
 def train_stage3(config):
-    # 先打印所有标签映射
-    logging.info("===== Stage3训练开始 =====")
-    logging.info("自动标签映射详细内容:")
+    # print all label maps first
+    logging.info("===== Stage3 training start =====")
+    logging.info("Label map contents:")
     
-    # 打印风格映射
-    logging.info("\n风格映射 (style_map):")
+    # print style map
+    logging.info("\nStyle map (style_map):")
     for label, idx in sorted(config.style_map.items(), key=lambda x: x[1]):
         logging.info(f"  {idx}: {label}")
     
-    logging.info("\n===== 标签映射打印完成 =====")
+    logging.info("\n===== Label map print complete =====")
     
     setup_logger()
     logging.info("\n=== Stage3モデル（文節級 style 分類）の訓練開始 ===")
@@ -1911,7 +1910,7 @@ def train_stage3(config):
     test_batches = 0
     
     with torch.no_grad():
-        # 收集所有的测试集预测和标签
+        # collect test set predictions and labels
         all_style_preds = []
         all_style_labels = []
         
@@ -1946,7 +1945,7 @@ def train_stage3(config):
             loss = criterion(style_logits, batch["style_label"].to(config.device))
             test_loss += loss.item()
             
-            # 精度計算
+            # accuracy calculation
             style_acc = compute_multilabel_accuracy(torch.sigmoid(style_logits), batch["style_label"].to(config.device))
             test_style_acc += style_acc
             test_batches += 1
@@ -1954,11 +1953,11 @@ def train_stage3(config):
             all_style_preds.append(torch.sigmoid(style_logits).cpu())
             all_style_labels.append(batch["style_label"].cpu())
         
-        # 合并所有批次的预测和标签
+        # merge all batch predictions and labels
         all_style_preds = torch.cat(all_style_preds, dim=0)
         all_style_labels = torch.cat(all_style_labels, dim=0)
         
-        # 计算详细的精度
+        # compute per-label accuracy
         style_acc, style_per_label_acc = compute_multilabel_accuracy_detailed(
             all_style_preds, all_style_labels, config.style_map)
     
@@ -1969,14 +1968,14 @@ def train_stage3(config):
     logging.info(f"  Test Loss = {avg_test_loss:.4f}")
     logging.info(f"  スタイル精度: {avg_test_style_acc:.2f}%")
     
-    # 输出详细的精度报告
-    logging.info(f"\n===== テストデータの詳細標签精度報告 =====")
+    # detailed accuracy report
+    logging.info(f"\n===== Test set per-label accuracy report =====")
     
-    logging.info("\n风格标签精度:")
+    logging.info("\nStyle label accuracy:")
     for label, acc in sorted(style_per_label_acc.items(), key=lambda x: x[1], reverse=True):
         logging.info(f"  {label}: {acc:.2f}%")
     
-    logging.info("\n=== Stage3训练完成 ===")
+    logging.info("\n=== Stage3 training complete ===")
     logging.info(f"最終最高検証精度: {best_val_acc:.2f}%")
     logging.info(f"テスト総合精度: {avg_test_style_acc:.2f}%")
 
@@ -1986,36 +1985,36 @@ def train_stage3(config):
 
 def inference_pipeline(config, input_json_path, model_dir):
     """
-    推理管道，将输入JSON处理并生成预测结果
+    Inference pipeline: process an input JSON file and generate keigo predictions.
     
     参数:
-      config: 配置对象
-      input_json_path: 输入JSON文件路径
-      model_dir: 模型目录，包含所有三个阶段的模型
+      config: Config object
+      input_json_path: path to the input JSON file
+      model_dir: directory containing all three stage model files
     """
     setup_logger()
     print(f"\n===== 分類開始 =====")
-    print(f"输入文件: {input_json_path}")
-    print(f"模型目录: {model_dir}")
+    print(f"Input file: {input_json_path}")
+    print(f"Model directory: {model_dir}")
     
-    # 所有模型都存在同一目录下，使用不同的文件名
+    # all three models are in the same directory with different filenames
     stage1_model_path = os.path.join(model_dir, "stage1_model.bin")
     stage2_model_path = os.path.join(model_dir, "stage2_model.bin")
     stage3_model_path = os.path.join(model_dir, "stage3_model.bin")
     
-    # 检查模型文件是否存在
+    # check that all model files exist
     for model_path in [stage1_model_path, stage2_model_path, stage3_model_path]:
         if not os.path.exists(model_path):
-            print(f"错误: 模型文件不存在: {model_path}")
+            print(f"Error: model file not found: {model_path}")
             return
     
     try:
-        # 加载tokenizer
-        print("加载tokenizer...")
+        # load tokenizer
+        print("Loading tokenizer...")
         tokenizer = BertJapaneseTokenizer.from_pretrained(config.pretrained_model)
         
-        # 加载Stage1模型
-        print("加载Stage1模型...")
+        # load Stage1 model
+        print("Loading Stage1 model...")
         stage1_model = Stage1Model(config.pretrained_model, 
                                   num_keigo=len(config.social_standing_results_map), 
                                   num_role=len(config.role_pair_map))
@@ -2023,8 +2022,8 @@ def inference_pipeline(config, input_json_path, model_dir):
         stage1_model.to(config.device)
         stage1_model.eval()
         
-        # 加载Stage2模型
-        print("加载Stage2模型...")
+        # load Stage2 model
+        print("Loading Stage2 model...")
         stage2_model = Stage2Model(config.pretrained_model,
                                   num_inter_obj=len(config.interaction_object_map),
                                   num_inter_role=len(config.interaction_role_map),
@@ -2035,8 +2034,8 @@ def inference_pipeline(config, input_json_path, model_dir):
         stage2_model.to(config.device)
         stage2_model.eval()
         
-        # 加载Stage3模型
-        print("加载Stage3模型...")
+        # load Stage3 model
+        print("Loading Stage3 model...")
         stage3_model = Stage3Model(config.pretrained_model,
                                   num_keigo_type=len(config.style_map),
                                   num_inter_obj=len(config.interaction_object_map),
@@ -2046,16 +2045,16 @@ def inference_pipeline(config, input_json_path, model_dir):
         stage3_model.to(config.device)
         stage3_model.eval()
         
-        # 读取输入JSON
+        # read input JSON
         with open(input_json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        # 提取邮件文本
+        # extract email text
         mail_text = ""
         if "mail_text" in data:
             mail_text = data["mail_text"]
         elif "本文" in data:
-            # 尝试从本文字段提取文本
+            # try extracting text from 本文 field
             if isinstance(data["本文"], list):
                 mail_parts = []
                 for section in data["本文"]:
@@ -2068,15 +2067,15 @@ def inference_pipeline(config, input_json_path, model_dir):
             else:
                 mail_text = str(data["本文"])
         
-        # 如果没有找到邮件文本，尝试使用assemble_mail_text函数
+        # fallback: use assemble_mail_text
         if not mail_text and "assemble_mail_text" in globals():
             mail_text = assemble_mail_text(data)
         
         if not mail_text:
-            print("错误: 无法从输入JSON中提取邮件文本")
+            print("Error: could not extract email text from input JSON")
             return
         
-        # 提取句子
+        # extract sentences
         sentences = []
         if "sentences" in data:
             sentences = data["sentences"]
@@ -2089,57 +2088,57 @@ def inference_pipeline(config, input_json_path, model_dir):
                         sentences.append(section["文"])
         
         if not sentences:
-            # 如果没有找到句子，将整个邮件作为一个句子
+            # fallback: treat whole email as one sentence
             sentences = [mail_text]
         
-        # 打印邮件内容
+        # print email content
         print(f"\n===== メール内容 =====")
         print(mail_text)
         print(f"\n{len(sentences)} 個の文を分析する必要があります")
         
-        # 对整个邮件进行一次Stage1预测
+        # Stage1 prediction for the whole email
         mail_enc = tokenizer(mail_text, truncation=True, padding='max_length', 
                             max_length=config.max_length, return_tensors="pt")
         mail_input_ids = mail_enc["input_ids"].to(config.device)
         mail_attention_mask = mail_enc["attention_mask"].to(config.device)
         
         with torch.no_grad():
-            # Stage1预测（对整个邮件）
+            # Stage1 prediction (whole email)
             keigo_logits, role_logits = stage1_model(mail_input_ids, mail_attention_mask)
             keigo_probs = torch.softmax(keigo_logits, dim=1)[0].cpu().numpy()
             role_probs = torch.softmax(role_logits, dim=1)[0].cpu().numpy()
             
-            # 获取预测标签
+            # get predicted label indices
             keigo_pred = np.argmax(keigo_probs)
             role_pred = np.argmax(role_probs)
             
-            # 获取标签名称
+            # get label names
             social_standing_results = [k for k, v in config.social_standing_results_map.items() if v == keigo_pred][0]
             role_label = [k for k, v in config.role_pair_map.items() if v == role_pred][0]
             
-            # 打印Stage1预测结果
+            # print Stage1 predictions
             print(f"\n===== メール全体レベル予測結果 =====")
             print(f"社会関係: {social_standing_results} (確率: {keigo_probs[keigo_pred]:.4f})")
             print(f"役割関係: {role_label} (確率: {role_probs[role_pred]:.4f})")
             
-            # 将Stage1预测结果转换为张量，用于后续阶段
+            # convert Stage1 output to tensors for next stages
             stage1_social_standing_results = torch.softmax(keigo_logits, dim=1)
             stage1_role_label = torch.softmax(role_logits, dim=1)
         
-        # 处理每个句子
+        # process each sentence
         results = []
         for i, sentence in enumerate(sentences):
             print(f"\n===== 処理する文 {i+1}/{len(sentences)} =====")
             print(f"文の内容: {sentence}")
             
-            # 对句子进行编码
+            # encode sentence
             sent_enc = tokenizer(sentence, truncation=True, padding='max_length', 
                                 max_length=config.max_length, return_tensors="pt")
             sent_input_ids = sent_enc["input_ids"].to(config.device)
             sent_attention_mask = sent_enc["attention_mask"].to(config.device)
             
             with torch.no_grad():
-                # Stage2预测（使用整个邮件的Stage1预测结果）
+                # Stage2 prediction (using Stage1 output)
                 inter_obj_logits, inter_role_logits, sender_act_logits = stage2_model(
                     mail_input_ids, mail_attention_mask,
                     sent_input_ids, sent_attention_mask,
@@ -2150,7 +2149,7 @@ def inference_pipeline(config, input_json_path, model_dir):
                 role_probs = torch.sigmoid(inter_role_logits)[0].cpu().numpy()
                 act_probs = torch.sigmoid(sender_act_logits)[0].cpu().numpy()
                 
-                # Stage3预测
+                # Stage3 prediction
                 stage2_inter_obj = torch.sigmoid(inter_obj_logits)
                 stage2_inter_role = torch.sigmoid(inter_role_logits)
                 stage2_sender_act = torch.sigmoid(sender_act_logits)
@@ -2163,33 +2162,33 @@ def inference_pipeline(config, input_json_path, model_dir):
                 
                 style_probs = torch.sigmoid(style_logits)[0].cpu().numpy()
             
-            # 获取交互对象的前3个预测
+            # top-3 interaction object predictions
             top_objects = []
             top_obj_indices = np.argsort(obj_probs)[::-1][:3]
             for idx in top_obj_indices:
                 label = [k for k, v in config.interaction_object_map.items() if v == idx][0]
                 top_objects.append({"label": label, "probability": float(obj_probs[idx])})
             
-            # 获取交互角色的前3个预测
+            # top-3 interaction role predictions
             top_roles = []
             top_role_indices = np.argsort(role_probs)[::-1][:3]
             for idx in top_role_indices:
                 label = [k for k, v in config.interaction_role_map.items() if v == idx][0]
                 top_roles.append({"label": label, "probability": float(role_probs[idx])})
             
-            # 获取发送者行为的前5个预测
+            # top-5 sender action predictions
             top_actions = []
             top_act_indices = np.argsort(act_probs)[::-1][:5]
             for idx in top_act_indices:
                 label = [k for k, v in config.sender_action_map.items() if v == idx][0]
                 top_actions.append({"label": label, "probability": float(act_probs[idx])})
             
-            # 获取风格标签
+            # get style label predictions
             keigo_type_results = []
             for idx, (style_name, _) in enumerate(config.style_map.items()):
                 keigo_type_results.append({"style": style_name, "probability": float(style_probs[idx])})
             
-            # 输出结果
+            # print results
             print("\n===== 文レベル予測結果 =====")
             
             print("\nやり取りされるもの:")
@@ -2208,11 +2207,11 @@ def inference_pipeline(config, input_json_path, model_dir):
             for style in keigo_type_results:
                 print(f"  - {style['style']}: {style['probability']:.4f}")
             
-            # 将结果添加到列表
+            # append to results
             sentence_result = {
                 "sentence": sentence,
-                "social_standing": social_standing_results,  # 使用邮件级别的预测结果
-                "role_relationship": role_label,  # 使用邮件级别的预测结果
+                "social_standing": social_standing_results,
+                "role_relationship": role_label,
                 "object_of_exchange": top_objects,
                 "role_in_conversation": top_roles,
                 "sender_actions": top_actions,
@@ -2220,7 +2219,7 @@ def inference_pipeline(config, input_json_path, model_dir):
             }
             results.append(sentence_result)
         
-        # 创建完整的结果对象
+        # build final result object
         final_result = {
             "mail_text": mail_text,
             "mail_level_prediction": {
@@ -2230,14 +2229,14 @@ def inference_pipeline(config, input_json_path, model_dir):
             "sentence_results": results
         }
         
-        # 保存结果到JSON
+        # save result to JSON
         output_path = input_json_path.replace(".json", "_result.json")
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(final_result, f, ensure_ascii=False, indent=2)
         
-        print(f"\n分類完了，結果は {output_path} に保存されました")
+        print(f"\nClassification complete. Results saved to {output_path}")
         
-        # 打印总结
+        # print summary
         print("\n===== まとめ =====")
         print(f"メールには {len(sentences)} 個の文が含まれています")
         print(f"メールレベル予測: 敬語タイプ = {social_standing_results}, 役割関係 = {role_label}")
@@ -2262,7 +2261,7 @@ def main():
     parser.add_argument("--model_dir", type=str, default="", help="推論モード時のモデルディレクトリ")
     parser.add_argument("--data_dir", type=str, default="./data",
                         help="訓練データが格納されているディレクトリ (デフォルト: ./data)")
-    parser.add_argument("--auto_maps", action="store_true", help="自動的に標签映射を構築する")
+    parser.add_argument("--auto_maps", action="store_true", help="Auto-build label maps from data")
     
     args = parser.parse_args()
     
@@ -2273,7 +2272,7 @@ def main():
 
     if args.mode == "build_maps":
         setup_logger()
-        logging.info("开始构建标签映射...")
+        logging.info("Building label maps...")
         _ = build_label_maps_from_data(config.data_dir)
         return
     
@@ -2285,12 +2284,12 @@ def main():
         train_stage3(config)
     elif args.mode == "inference":
         if not args.input:
-            print("エラー: 推論モードでは --input パラメータが必要です")
+            print("Error: --input is required for inference mode")
             return
         if not args.model_dir:
-            print("エラー: 推論モードでは --model_dir パラメータが必要です")
+            print("Error: --model_dir is required for inference mode")
             return
-        # 这里使用正确的函数名inference_pipeline
+
         inference_pipeline(config, args.input, args.model_dir)
 
 if __name__ == "__main__":
