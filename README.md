@@ -23,10 +23,6 @@ After downloading, place the files so the directory looks like:
       stage2_model.bin
     stage3_<timestamp>/
       stage3_model.bin
-  pipeline.py
-  classifier.py
-  label_maps.json
-  requirements.txt
 ```
 
 ---
