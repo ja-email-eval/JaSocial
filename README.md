@@ -209,11 +209,18 @@ To request the **complete dataset** (1,200 annotated emails), please contact:
 If you use this system in your research, please cite:
 
 ```bibtex
-@inproceedings{[CITATION_KEY],
-  title   = {[PAPER_TITLE]},
-  author  = {[AUTHORS]},
-  year    = {[YEAR]},
-  booktitle = {[VENUE]}
+@inproceedings{liu-etal-2026-evaluating,
+  title = {Evaluating Social Intelligence in LLMs via Japanese Honorifics in Email Generation: A Social Semiotic System Perspective},
+  author = {Liu, Muxuan and Ishigaki, Tatsuya and Miyao, Yusuke and Takamura, Hiroya and Kobayashi, Ichiro},
+  booktitle = {Proceedings of the Fifteenth Language Resources and Evaluation Conference (LREC 2026)},
+  month = {May},
+  year = {2026},
+  pages = {1957--1976},
+  address = {Palma, Mallorca, Spain},
+  publisher = {European Language Resources Association (ELRA)},
+  editor = {Piperidis, Stelios and Bel, Núria and van den Heuvel, Henk and Ide, Nancy and Krek, Simon and Toral, Antonio},
+  doi = {10.63317/54wnt2fwhk8j},
+  abstract = {We propose JaSocial, a novel evaluation framework that leverages Japanese emails to comprehensively evaluate large language models’ (LLMs) social intelligence across varied social‑status relationships. The framework integrates three core components. First, we construct and publicly release a meticulously human‑annotated Japanese email dataset covering six distinct social‑status contexts, thereby capturing nuanced shifts in social hierarchy and politeness. Second, we adopt Systemic Functional Linguistics (SFL)—a social-semiotic linguistic theory that explicitly models how linguistic choices realize interpersonal relations and hierarchical distinctions—to classify email content in terms of three perspectives: social relationships, speech functions, and honorific expressions. Based on these perspectives, we design an automated evaluation method that assigns each LLM-generated email a contextual appropriateness score, quantifying how well it reflects socially intelligent behavior. Third, we release the full evaluation code to ensure reproducibility and enable fair cross-model comparisons. JaSocial exposes current LLMs’ limitations in capturing cultural nuance, while providing an open benchmark for future research.}
 }
 ```
 
